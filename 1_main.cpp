@@ -134,6 +134,7 @@ void get_wprotect_sdk_address(CPESection & section,
     }
 }
 
+
 void buildvm_test(BuildExeInfo & build_info)
 {
     char * build_exec_name = build_info.get_filename();
@@ -155,10 +156,17 @@ void buildvm_test(BuildExeInfo & build_info)
     section = file;
     printf ("一共有%d个区段\n", section.GetSectionCount());
 
+	/*
+	* 这里是获取被加壳的PE中“WProtect Begin”与 “WProtect End”之间的代码的地址和大小，
+	* 最后结果存到build_info中
+	*/
     get_wprotect_sdk_address(section,build_info,"WProtect Begin","WProtect End");
 
     VMAddressTable table( section.GetNewSectionBase(), 1024, false );
 
+	/*
+	 获取虚拟机代码的地址
+	*/
     bool t_sign = table.get_sign();
     table.set_sign(true);
     long virtualmachine_address = table.assign_address(4096);
@@ -222,12 +230,20 @@ void buildvm_test(BuildExeInfo & build_info)
     file.SavePEFile(new_file_name);
 }
 
-
-
 int main()
 {
+	/*
+	这里说一下整体的思路：
+	1. 被加壳的PE在需要加VM的代码片段前加上字符串“WProtect Begin”标志，
+	   在代码片段结束的位置加上“WProtect Begin”，Wprotect同过扫描PE的所有的节，
+	   获得这些代码片段的起始位置和大小。
+
+	2. WP读取这些代码片段，将这些代码片段转为VM的字节码，然后将这些代码片段所在的位置清零，
+	   并在这些代码片段原来的位置加一个跳转，	跳转到WP的VM虚拟机，
+	   VM的虚拟机的代码存放在一个名叫".Wpro"的新节区中。
+	*/
     srand( (unsigned int)time( NULL ) );
-    BuildExeInfo build_pe("movzx_test.exe");
+    BuildExeInfo build_pe("syntax.exe");
     buildvm_test(build_pe);
     return 0;
 }
