@@ -222,6 +222,8 @@ void buildvm_test(BuildExeInfo & build_info)
     file.SavePEFile(new_file_name);
 }
 
+
+
 int main()
 {
     srand( (unsigned int)time( NULL ) );
