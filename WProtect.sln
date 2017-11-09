@@ -5,6 +5,8 @@ VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WProtect", "WProtect.vcxproj", "{6719023E-E9E6-44DF-857E-3780D184C80F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestLibUdis86", "TestLibUdis86\TestLibUdis86.vcxproj", "{463BE44B-1753-4199-814D-03BA085A80BE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -21,6 +23,12 @@ Global
 		{6719023E-E9E6-44DF-857E-3780D184C80F}.Release|Win32.Build.0 = Release|Win32
 		{6719023E-E9E6-44DF-857E-3780D184C80F}.Release|x64.ActiveCfg = Release|x64
 		{6719023E-E9E6-44DF-857E-3780D184C80F}.Release|x64.Build.0 = Release|x64
+		{463BE44B-1753-4199-814D-03BA085A80BE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{463BE44B-1753-4199-814D-03BA085A80BE}.Debug|Win32.Build.0 = Debug|Win32
+		{463BE44B-1753-4199-814D-03BA085A80BE}.Debug|x64.ActiveCfg = Debug|Win32
+		{463BE44B-1753-4199-814D-03BA085A80BE}.Release|Win32.ActiveCfg = Release|Win32
+		{463BE44B-1753-4199-814D-03BA085A80BE}.Release|Win32.Build.0 = Release|Win32
+		{463BE44B-1753-4199-814D-03BA085A80BE}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
