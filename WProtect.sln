@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WProtect", "WProtect.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestLibUdis86", "TestLibUdis86\TestLibUdis86.vcxproj", "{463BE44B-1753-4199-814D-03BA085A80BE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestAsmjit", "TestAsmjit\TestAsmjit.vcxproj", "{F0011189-8723-40FB-ABD4-FD011C61D07B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -29,6 +31,12 @@ Global
 		{463BE44B-1753-4199-814D-03BA085A80BE}.Release|Win32.ActiveCfg = Release|Win32
 		{463BE44B-1753-4199-814D-03BA085A80BE}.Release|Win32.Build.0 = Release|Win32
 		{463BE44B-1753-4199-814D-03BA085A80BE}.Release|x64.ActiveCfg = Release|Win32
+		{F0011189-8723-40FB-ABD4-FD011C61D07B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F0011189-8723-40FB-ABD4-FD011C61D07B}.Debug|Win32.Build.0 = Debug|Win32
+		{F0011189-8723-40FB-ABD4-FD011C61D07B}.Debug|x64.ActiveCfg = Debug|Win32
+		{F0011189-8723-40FB-ABD4-FD011C61D07B}.Release|Win32.ActiveCfg = Release|Win32
+		{F0011189-8723-40FB-ABD4-FD011C61D07B}.Release|Win32.Build.0 = Release|Win32
+		{F0011189-8723-40FB-ABD4-FD011C61D07B}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
