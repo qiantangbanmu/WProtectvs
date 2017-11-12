@@ -119,10 +119,131 @@ void AssemblerExample()
 	int result = pfnSum(anArr, 10); //执行代码
 	printf("%d\r\n", result);
 }
+
+typedef void(*PFN_SUMINTS)(int* dst, const int* a, const int* b);
+void RelocationExample()
+{
+	CodeHolder code;
+	code.init(CodeInfo(ArchInfo::kTypeHost));//使用本地处理器
+	X86Assembler a(&code);
+
+	X86Gp dst = x86::eax;
+	X86Gp src_a = x86::ecx;
+	X86Gp src_b = x86::edx;
+	a.mov(dst, x86::dword_ptr(x86::esp, 4)); //获取目的指针
+	a.mov(src_a, x86::dword_ptr(x86::esp, 8)); //获取源指针
+	a.mov(src_b, x86::dword_ptr(x86::esp, 12)); //获取源指针
+
+	a.movdqu(x86::xmm0, x86::ptr(src_a)); //从[src_a]载入4个int到xmm0
+	a.movdqu(x86::xmm1, x86::ptr(src_b));
+	a.paddd(x86::xmm0, x86::xmm1); //相加
+	a.movdqu(x86::ptr(dst), x86::xmm0);//存储到[dst]
+	a.ret();
+
+	size_t size = code.getCodeSize(); //获取代码的大小（最大）
+
+	VMemMgr vm;
+	void* p = vm.alloc(size);
+	size_t ssre = code.relocate(p); //重定位并存储到p
+	int  intA[4] = { 1, 2, 3, 4 };
+	int intB[4] = { 5, 6 , 7, 8 };
+	int intC[4];
+	((PFN_SUMINTS)p)(intC, intA, intB);
+
+}
+
+typedef int(*PFN_TEST)();
+void CompilerBasic()
+{
+	JitRuntime rt;
+
+	CodeHolder code;
+	code.init(CodeInfo(ArchInfo::kTypeHost));//使用本地处理器
+	X86Compiler cc(&code);
+
+	cc.addFunc(FuncSignature0<int>()); //函数原型： int fn(void);
+
+	X86Gp vReg = cc.newGpd(); //创建一个32的寄存器
+	cc.mov(vReg, 1); 
+	cc.ret(vReg);
+
+	cc.endFunc();//函数结束
+	cc.finalize(); //将cc的内容进行汇编
+
+	PFN_TEST pfnSum = 0;
+	Error err = rt.add(&pfnSum, &code); //将产生的代码添加到runtime
+	if (err)
+	{
+		return; //错误
+	}
+	// *** CodeHoder 不在需要，可以被销毁
+	int anArr[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+	int result = pfnSum(); //执行代码
+	printf("%d\r\n", result);
+}
+
+
+typedef int(*PFN_MEMCPY)(uint32_t* dst, const uint32_t* src, size_t count);
+void CompilerMemcpy()
+{
+	JitRuntime rt;
+
+	CodeHolder code;
+	code.init(CodeInfo(ArchInfo::kTypeHost));//使用本地处理器
+	X86Compiler cc(&code);
+
+	cc.addFunc(FuncSignature3<void, uint32_t*, uint32_t, size_t>());
+
+	Label lblLoop = cc.newLabel();
+	Label lblExit = cc.newLabel();
+
+	X86Gp dst = cc.newIntPtr();
+	X86Gp src = cc.newIntPtr();
+	X86Gp cnt = cc.newIntPtr();
+
+
+	cc.setArg(0, src);
+	cc.setArg(1, dst);
+	cc.setArg(2, cnt);
+
+	cc.test(cnt, cnt);
+	cc.jz(lblExit);
+	cc.bind(lblLoop);
+
+	X86Gp tmp = cc.newInt32();
+	cc.mov(tmp, x86::dword_ptr(src));
+	cc.mov(x86::dword_ptr(dst), tmp);
+
+	cc.add(src, 4);
+	cc.add(dst, 4);
+
+	cc.dec(cnt);
+	cc.jnz(lblLoop);
+
+	cc.bind(lblExit);
+	cc.endFunc();
+
+	cc.finalize();
+
+	PFN_MEMCPY pfnSum = 0;
+	Error err = rt.add(&pfnSum, &code); //将产生的代码添加到runtime
+	if (err)
+	{
+		return; //错误
+	}
+	// *** CodeHoder 不在需要，可以被销毁
+	uint32_t anArr[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+	uint32_t anArrd[10] = { 0 };
+	size_t result = pfnSum(anArr, anArrd, 10); //执行代码
+	printf("%d\r\n", result);
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	//MinimalExample();
-	AssemblerExample();
+//	AssemblerExample();
+	//RelocationExample();
+	CompilerMemcpy();
 
 	JitRuntime rt;
 	CodeHolder code;  //存储代码和重定位信息
