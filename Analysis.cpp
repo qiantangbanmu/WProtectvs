@@ -752,6 +752,10 @@ AddressArray Analysis::analysis_code_piece_address(pCodeBufferInfo pinfo)
     address_array.push_back(pinfo->addr);
     address_array.push_back(pinfo->addr + pinfo->size);
 
+	/*
+	* 查找带有前缀、jxx、call xxx、ret的指令
+	* 查找带有流程转移的指令的地址
+	*/
     while (ud_disassemble(&ud_obj) != 0)
     {
         if (ud_obj.pfx_rep != 0 || ud_obj.pfx_repe != 0 || ud_obj.pfx_repne != 0)   //有前缀

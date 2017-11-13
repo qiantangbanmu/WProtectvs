@@ -472,8 +472,8 @@ BuildVMByteCode::BuildVMByteCode(VirtualMachineManage * ptr_vmmanage,
     register_mapped_init();
 
     Analysis var_analysis;
-    var_analysis.disasm(ptr_info,var_list_code_piece);
-    var_analysis.printf_piece(var_list_code_piece);
+    var_analysis.disasm(ptr_info,var_list_code_piece); 
+    var_analysis.printf_piece(var_list_code_piece);  //输出解析到的信息
 
     pVM = ptr_vmmanage->rand_virtual_machine();
     ptr_addr_table = ptr_address_table;
@@ -2846,7 +2846,7 @@ void BuildVMByteCode::full_register_store(std::vector<CodePiece> &var_list_code_
 {
     VCombosVMCode combs;
     RegisterStore regstore;
-    combs.upset_register_array(regstore);
+    combs.upset_register_array(regstore);//初始化所有的寄存器，并进行乱序排列
 
     for (int i = 0; i < (int)var_list_code_piece.size(); i++)
     {

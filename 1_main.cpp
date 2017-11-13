@@ -201,6 +201,9 @@ void buildvm_test(BuildExeInfo & build_info)
             section.GetSectionMinAddress(),
             section.GetSectionMaxAddress());
 
+	    /*
+		* jmp/call [addr_table + reg] 查找addr_table里面的值
+		*/
         get_table_addr(section,addr_table,addr_entry_point);
 
         BuildVMByteCode build(&vm,&Code,&table,addr_entry_point);
