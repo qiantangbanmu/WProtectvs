@@ -9,9 +9,9 @@ int main()
 	//CLink CodeList;
 	list<CodeNode*> CodeList;
 	list<CodeNode*> CodeList1;
-	pestruct.OpenFileName("G:\\项目\\VMPacker\\ConvertCrackMe\\Release\\ConvertCrackMe.exe");
-	pestruct.LoadMap("G:\\项目\\VMPacker\\ConvertCrackMe\\Release\\ConvertCrackMe.map");
-	getchar();
+	pestruct.OpenFileName("E:\\Code\\VMSample\\Release\\VMSample.exe");
+	pestruct.LoadMap("E:\\Code\\VMSample\\Release\\VMSample.map");
+	//getchar();
 	codefactory.Init(0x400000+pestruct.GetNewSection());//创建虚拟内存段
 
 	//MapStructrue* stu = pestruct.GetMap("CmpThread(void *)");
@@ -23,17 +23,17 @@ int main()
 	codefactory.DisasmFunction(&CodeList,Base_Addr,stu->VirtualAddress);
 
 	list<CodeNode*>::iterator itr;
-	//for( itr = CodeList.begin(); itr != CodeList.end(); itr++ )
-	//{
-	//	CodeNode* code = *itr;
-	//	if( code )
-	//	{
-	//		char str[255] = "";
-	//		sprintf_s(str,255,"vcode:%s\n",code->disasm.vm_name);
-	//		OutputDebugStringA(str);
-	//		printf("%-24s  %-24s   (MASM)\n",code->disasm.dump,code->disasm.result);
-	//	}
-	//}
+	for (itr = CodeList.begin(); itr != CodeList.end(); itr++)
+	{
+		CodeNode* code = *itr;
+		if (code)
+		{
+			char str[255] = "";
+			sprintf_s(str, 255, "vcode:%s\n", code->disasm.vm_name);
+			OutputDebugStringA(str);
+			printf("%-24s  %-24s   (MASM)\n", code->disasm.dump, code->disasm.result);
+		}
+	}
 	itr = CodeList.begin();
 	CodeNode* code = *itr;
 	itr = CodeList.end();
@@ -66,7 +66,7 @@ int main()
 	pestruct.UpdateHeaders(FALSE);
 	pestruct.UpdateHeadersSections(TRUE);
 	pestruct.UpdateHeadersSections(FALSE);
-	pestruct.MakePE("G:\\项目\\VMPacker\\ConvertCrackMe\\Release\\ConvertCrackMe.vm.exe",len);
+	pestruct.MakePE("E:\\Code\\VMSample\\Release\\VMSample.vm.exe",len);
 
 	//#include "asm\disasm.h"
 	//ulong l = 0;

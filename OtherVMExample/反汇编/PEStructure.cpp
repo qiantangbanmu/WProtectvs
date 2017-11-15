@@ -37,7 +37,7 @@ BOOL CPEStructure::OpenFileName(char* FileName)
 	}
 	strcpy_s(m_FileName,256,FileName);
 	dwOutPutSize = dwFsize + PackerCode_Size + ALIGN_CORRECTION;
-	pMem=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,dwOutPutSize);
+	pMem=(char*)new char[dwOutPutSize];
 	if(pMem == NULL)
 	{
 		CloseHandle( hFile );
@@ -121,9 +121,7 @@ void CPEStructure::UpdateHeadersSections(BOOL bSaveAndValidate)
 		CopyMemory(&image_section_header, pMem + dwRO_first_section, SectionNum * sizeof(IMAGE_SECTION_HEADER));
 		for( i = 0; i < SectionNum; i++ )
 		{
-			image_section[i]=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,
-				PEAlign(image_section_header[i].SizeOfRawData,
-				image_nt_headers.OptionalHeader.FileAlignment));
+			image_section[i]=(char*)new char[PEAlign(image_section_header[i].SizeOfRawData, image_nt_headers.OptionalHeader.FileAlignment)];
 			CopyMemory(image_section[i],
 				pMem+image_section_header[i].PointerToRawData,
 				image_section_header[i].SizeOfRawData);
@@ -411,7 +409,8 @@ void CPEStructure::Free()
 	DWORD SectionNum = image_nt_headers.FileHeader.NumberOfSections;
 	for(DWORD i = 0 ;i < SectionNum;i++)
 	{
-		GlobalFree(image_section[i]);
+		delete[] image_section[i];
+		//GlobalFree();
 		image_section[i] = NULL;
 	}
 	Init();
@@ -430,4 +429,4 @@ void CPEStructure::MakePE(char* filename,int len)
 	::SetFilePointer(handle,0,0,FILE_BEGIN);
 	::WriteFile(handle,pMem,dwOutPutSize,&Num,NULL);
 	::CloseHandle(handle);
-}  
+}
