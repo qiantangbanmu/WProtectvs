@@ -36,7 +36,7 @@ BOOL CPEStructure::OpenFileName(char* FileName)
 		return FALSE;
 	}
 	strcpy_s(m_FileName,256,FileName);
-	dwOutPutSize = dwFsize + PackerCode_Size + ALIGN_CORRECTION;
+	dwOutPutSize = dwFsize + PackerCode_Size + ALIGN_CORRECTION + 0x4000;
 	pMem=(char*)new char[dwOutPutSize];
 	if(pMem == NULL)
 	{
@@ -57,7 +57,7 @@ BOOL CPEStructure::OpenFileName(char* FileName)
 	ReservedHeaderRO= sizeof(IMAGE_DOS_HEADER);
 
 	ReservedHeaderSize= image_dos_header.e_lfanew - sizeof(IMAGE_DOS_HEADER);
-	reservedheader=new char[ReservedHeaderSize];
+	reservedheader=new char[ReservedHeaderSize + 0x1000];
 
 	CopyMemory(&image_nt_headers,
 		pMem+image_dos_header.e_lfanew,
@@ -106,7 +106,7 @@ void CPEStructure::UpdateHeadersSections(BOOL bSaveAndValidate)
 {
 	DWORD i = 0;
 	DWORD SectionNum = image_nt_headers.FileHeader.NumberOfSections;
-	if(bSaveAndValidate)//TRUE = data is being retrieved
+	if(bSaveAndValidate)//TRUE = data is being retrieved 保存数据
 	{
 		CopyMemory(&image_dos_header, pMem, sizeof(IMAGE_DOS_HEADER));
 		ReservedHeaderSize=image_dos_header.e_lfanew - sizeof(IMAGE_DOS_HEADER);
@@ -121,14 +121,15 @@ void CPEStructure::UpdateHeadersSections(BOOL bSaveAndValidate)
 		CopyMemory(&image_section_header, pMem + dwRO_first_section, SectionNum * sizeof(IMAGE_SECTION_HEADER));
 		for( i = 0; i < SectionNum; i++ )
 		{
-			image_section[i]=(char*)new char[PEAlign(image_section_header[i].SizeOfRawData, image_nt_headers.OptionalHeader.FileAlignment)];
+			DWORD dwSize = PEAlign(image_section_header[i].SizeOfRawData, image_nt_headers.OptionalHeader.FileAlignment);
+			image_section[i] = (char*)new char[dwSize];
 			CopyMemory(image_section[i],
 				pMem+image_section_header[i].PointerToRawData,
 				image_section_header[i].SizeOfRawData);
 		}
 		SectionAssigned = TRUE;//已分配空间
 	}
-	else				//FALSE = data is being initialized 
+	else				//FALSE = data is being initialized  恢复数据
 	{
 		CopyMemory(pMem, &image_dos_header, sizeof(IMAGE_DOS_HEADER));
 		ReservedHeaderSize = image_dos_header.e_lfanew - sizeof(IMAGE_DOS_HEADER);
