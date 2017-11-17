@@ -2,6 +2,10 @@
 #include "InterpretHandler.h"
 #include "asm/disasm.h"
 
+// 每个普通的汇编指令，一般都有一个虚拟机指令对应着，而每个虚拟机指令，实际上又对应着某段普通的汇编代码，换句话说，一个普通的汇编指令就由另一段汇编代码来模拟完成了
+// 此文件就是用于为某个汇编指令相应的虚拟机指令生成相应的汇编代码
+// 对于普通汇编指令与虚拟机指令的对应关系由一张表定义着（即vmtable，见vmserv.cpp中定义）
+
 CInterpretHandler::CInterpretHandler(void)
 {
 }
@@ -9,6 +13,19 @@ CInterpretHandler::CInterpretHandler(void)
 CInterpretHandler::~CInterpretHandler(void)
 {
 }
+/**
+* 获取指定寄存器RegType在VMContext虚拟机上下文中的偏移
+*
+*                针对不同的寄存器，偏移值不同，如
+*                        32位寄存器：EAX
+*                        16位寄存器：AX
+*                        低8位寄存器：AL
+*                以上情况直接取得偏移
+*                        高8位寄存器：AH
+*                则需要对偏移进行 + 1，以便得到高8位值
+*
+* RegType：指明要取得偏移的寄存器，取值可见枚举RegType
+*/
 // 获得寄存器的偏移
 // 16和32位和8位低字节均使用32位enum，8位高字节使用20以上的数
 int CInterpretHandler::GetRegisterOffset(int RegType)
@@ -16,7 +33,7 @@ int CInterpretHandler::GetRegisterOffset(int RegType)
 	if( RegType < 0 )
 		return RegType;
 	int offset = m_RegisterIdx[RegType]*4;
-	if ( RegType >= 20 )
+	if ( RegType >= 20 )// 判断是否取寄存器高8位
 		offset++;//8位高字节的地方
 	return offset;
 }
@@ -27,17 +44,36 @@ BOOL CInterpretHandler::Init()
 
 	return TRUE;
 }
-
+/**
+* 为指定虚拟机指令table设置所需操作数
+*
+* table: 包含某个虚拟机指令与汇编指令相关信息
+* asmtext：保存生成的汇编代码
+* len: asmtext缓存的长度
+*/
 //设置参数
 void CInterpretHandler::SetArg(VMTable* table,char* asmtext,int len)
 {
+	// 操作数不超过3个
 	for(int i = 0; i < 3; i++)
 	{
+		// 欲处理操作数超限制，则跳出
+		// OperandNum: 操作数个数
 		if( i >= table->OperandNum )
 			break;
+		// 以下将生成：mov EAX, [esp + (0 | 4 | 8)]
+		// 所以相当于将堆栈中压入的操作数复制到EAX寄存器中以作为虚拟机的操作数使用
 		sprintf_s(asmtext,len,"%smov %s,[esp+%02x]\n",asmtext,ArgReg[i],i*4);//将堆栈中的数据交给参数寄存器
 	}
 }
+
+/**
+* 将指定虚拟机指令table的操作数恢复到堆栈中(操作数一般都被压入栈)
+*
+* table: 包含某个虚拟机指令与汇编指令相关信息
+* asmtext：保存生成的汇编代码
+* len: asmtext缓存的长度
+*/
 //恢复参数
 void CInterpretHandler::RestoreArg(VMTable* table,char* asmtext,int len)
 {
@@ -46,44 +82,77 @@ void CInterpretHandler::RestoreArg(VMTable* table,char* asmtext,int len)
 	{
 		if( i >= table->OperandNum )
 			break;
+
 		sprintf_s(asmtext,len,"%smov [esp+%02x],%s\n",asmtext,i*4,ArgReg[i]);
 	}
 }
+
+/**
+* 将VMContext上下文保存的EFlag寄存器值恢复到EFlag寄存器中
+*
+* asmtext：保存恢复所需的汇编代码
+* len: asmtext缓存的长度
+*/
 //恢复标志
 void CInterpretHandler::RestoreFlag(char* asmtext,int len)
 {
 	sprintf_s(asmtext,len,"%sPush [edi+0x%02x]\nPopfd\n",asmtext,GetRegisterOffset(RT_EFlag));//恢复标志
 }
+/**
+* 将EFlag寄存器值保存到VMContext上下文的EFlag中
+*
+* asmtext：保存恢复所需的汇编代码
+* len: asmtext缓存的长度
+*/
 //保存标志
 void CInterpretHandler::SaveFlag(char* asmtext,int len)
 {
 	sprintf_s(asmtext,len,"%sPushfd\nPop [edi+0x%02x]\n",asmtext,GetRegisterOffset(RT_EFlag));//保存标志
 }
+
+/**
+* 根据指定虚拟机指令-汇编指令信息table为虚拟机指令生成相应的汇编代码
+*
+* table: 包含某个虚拟机指令与汇编指令相关信息
+* asmtext：保存生成的汇编代码
+* len: asmtext缓存的长度
+*
+* 返回值：成功返回TRUE，否则FALSE
+*/
 //根据结构声称ASM字符串
 BOOL CInterpretHandler::InterpretASMStr(VMTable* table,char* asmtext,int len)
 {
+	// 检测参数的合法性
 	if( strcmp(table->VMInstrName,"") == 0 || asmtext == NULL ) return FALSE;
-
+	// 清0 asmtext缓存
 	memset(asmtext,0,len);
-
+	// 为虚拟机指令设置操作数
 	SetArg(table,asmtext,len);//设置参数
+	// 某些汇编指令在执行时，需要用到某些寄存器的值来控制其执行，那么，对于相应
+	// 的虚拟指令，当然也是需要，所以，现在需要恢复所需寄存器的值了
 
+	// 为虚拟机指令设置所需的寄存器
 	//恢复需要的寄存器
 	for(int i = 0; i < 4; i++)
-	{
+	{ 
+		// 判断虚拟机指令是否需要用 i 寄存器
 		if( table->NeedReg[i] != NONE && table->NeedReg[i] < 14 )
 		{
+			// edi -> 指向VMContext
+
+			// 由于虚拟机将所有寄存器的值保存在VMContext中，所以，
+			// 现在将保存的值复制到所需寄存器中以便指令使用
 			sprintf_s(asmtext,len,"%smov %s,[edi+0x%02x]\n",asmtext,
 				vregname[2][table->NeedReg[i]],GetRegisterOffset(table->NeedReg[i]));
 		}
 	}
-
+	// 为vBegin指令生成汇编代码
 	BOOL After = FALSE;
 	if( _stricmp(table->strInstruction,"vBegin") == 0 )
 	{
 		After = InterpretvBegin(table,asmtext,len);
 	}
-	else if( _stricmp(table->strInstruction,"vtoReal") == 0 )
+	else if (_stricmp(table->strInstruction, "vtoReal") == 0) // 为vtoReal指令生成汇编代码，vtoReal用于跳转至真实指令
 	{
 		After = InterpretvtoReal(table,asmtext,len);
 	}
@@ -120,9 +189,12 @@ BOOL CInterpretHandler::InterpretASMStr(VMTable* table,char* asmtext,int len)
 	{
 		After = InterpretLeave(table,asmtext,len);
 	}
-/////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////
+	// 为jcxz指令生成相应的汇编代码
+	// 注：jcxz指令，该指令实现当寄存器CX的值等于0时转移到标号,否则顺序执行
 	else if( _stricmp(table->strInstruction,"jcxz") == 0 )
 	{
+		// 先将VMContext上下文的EFlag寄存器恢复到EFlag标志寄存器
 		RestoreFlag(asmtext,len);
 		After = InterpretJCXZ(table,asmtext,len);
 	}
@@ -162,10 +234,13 @@ BOOL CInterpretHandler::InterpretASMStr(VMTable* table,char* asmtext,int len)
 		After = CommonInstruction(table,asmtext,len);
 	}
 
+	// 某些指令执行完成后，将会影响到某些寄存器的值，这里所做的，就是将
+	// 指令执行后改变的寄存器值保存回VMContext上下文中的各个寄存器中
 	//sprintf_s(asmtext,len,"%smov [edi+%02x],ebp\n",asmtext,GetRegisterOffset(RT_Esp));//将ebp(即真正esp)保存到esp的地址
 	//保存寄存器的值
 	for(int i = 0; i < 3; i++)
 	{
+		// 如果需保存i寄存器，即i寄存器被改变了
 		if( table->SaveReg[i] != NONE )
 		{
 			sprintf_s(asmtext,len,"%smov [edi+0x%02x],%s\n",asmtext,
@@ -178,9 +253,21 @@ BOOL CInterpretHandler::InterpretASMStr(VMTable* table,char* asmtext,int len)
 		RestoreArg(table,asmtext,len);
 	}
 
+	// 将最终为指令生成的汇编代码转为大写
 	_strupr_s(asmtext,ASMTEXTLEN);
 	return TRUE;
 }
+/**
+* 根据操作数的位数bit，获取相应的修饰符
+*
+* bit: 操作数的位数
+* scalestr：用于返回得到的修饰符
+*
+* 返回值：返回操作数大小索引：
+*                8位: 0
+*                16位: 1
+*                32位：2
+*/
 int GetScalestr(int bit,OUT char* scalestr)
 {
 	int sizeidx = 0;
@@ -202,17 +289,28 @@ int GetScalestr(int bit,OUT char* scalestr)
 	return sizeidx;
 }
 
+/**
+* 为普通指令生成相应的汇编代码
+*
+* table: 存放某个普通指令的信息，根据这些信息可以为相应虚拟机生成汇编代码
+* asmtext: 保存生成的汇编代码
+* len：asmtext缓存的长度
+*
+* 返回值：只返回TRUE
+*/
 BOOL CInterpretHandler::CommonInstruction(VMTable* table,char* asmtext,int len)
 {
 	char scalestr[6] = {0};
 	int sizeidx = 0;
-
+	// 处理指令的操作数
 	char stroperand[1024] = {0};
 	for(int i = 0; i < 3; i++)
 	{
+		// 操作数超限制
 		if( i >= table->OperandNum )
 			break;
-		sizeidx = GetScalestr(table->bitnum[i],scalestr);
+		sizeidx = GetScalestr(table->bitnum[i],scalestr);// 获取i操作数的修饰符
+		// 如果i操作数是一个内存数
 		if( table->optype[i] == MEMTYPE )//内存数
 		{	//操作数顺序eax,ecx,edx
 			sprintf_s(stroperand,1024,"%s%s ptr %s[%s],",stroperand,scalestr,GetSegStr(table->Segment),vregname[2][i]);//得到参数
@@ -222,10 +320,12 @@ BOOL CInterpretHandler::CommonInstruction(VMTable* table,char* asmtext,int len)
 			sprintf_s(stroperand,1024,"%s%s,",stroperand,vregname[sizeidx][i]);//得到参数
 		}
 	}
+	// 去掉最后操作数的逗号
 	if( table->OperandNum > 0)
 		stroperand[strlen(stroperand)-1] = '\0';//去掉逗号
 
 	RestoreFlag(asmtext,len);
+	// 执行指令
 	sprintf_s(asmtext,len,"%s%s %s\n",asmtext,table->strInstruction,stroperand);//真正执行的指令
 	SaveFlag(asmtext,len);
 	return TRUE;

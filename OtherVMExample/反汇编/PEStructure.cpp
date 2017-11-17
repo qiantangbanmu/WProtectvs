@@ -102,6 +102,12 @@ void CPEStructure::UpdateHeaders(BOOL bSaveAndValidate)
 	}
 }
 //----------------------------------------------------------------
+/**
+* 更新PE文件的头部与区块数据
+*
+* bSaveAndValidate: true表示读取PE文件中的各头部与区块数据
+*                                         false表示是将文件各头部与区块数据写回至PE文件中
+*/
 void CPEStructure::UpdateHeadersSections(BOOL bSaveAndValidate)
 {
 	DWORD i = 0;
@@ -162,6 +168,15 @@ DWORD CPEStructure::PEAlign(DWORD dwTarNum,DWORD dwAlignTo)
 	dwtemp=dwtemp*dwAlignTo;
 	return(dwtemp);
 }
+/**
+* 获取strAddress中的段与文件偏移信息
+*
+* StrAddress：如0001:00000003
+* Segment: 用于返回段信息，即0001
+* FileOffset: 用于返回文件偏移量，即00000003
+*
+* 返回值：成功返回TRUE，否则FALSE
+*/
 //分割得到段和偏移
 BOOL CPEStructure::GetFileAddr(char* StrAddress,int* Segment,int* FileOffset)
 {
@@ -175,7 +190,13 @@ BOOL CPEStructure::GetFileAddr(char* StrAddress,int* Segment,int* FileOffset)
 	*FileOffset = StringToHex(StrOffset);
 	return TRUE;
 }
-
+/**
+* 读取指定pmapfilename文件，解析其中的符号信息，将每个符号的信息存放在MapVector中
+*
+* pmapfilename: MAP文件的路径名
+*
+* 注：MAP文件是一个文本文件，记录了程序的入口地址、基地址、符号及其对应的段、偏址等信息
+*/
 void CPEStructure::LoadMap(char* pmapfilename) 
 {
 	if( !pmapfilename )
@@ -287,7 +308,13 @@ void CPEStructure::LoadMap(char* pmapfilename)
 		OutPutStr("%s %08X %s\n",stu->SymbleName,stu->VirtualAddress,stu->LibObject);
 	}
 }
-
+/**
+* 根据函数名funcname获取相应的符号信息
+*
+* funcname：欲获取符号信息的函数(符号)名
+*
+* 返回值：找到相应符号信息则返回，否则返回NULL
+*/
 MapStructrue* CPEStructure::GetMap(char* funcname)
 {
 	for( vector<MapStructrue*>::iterator itr = MapVector.begin(); itr != MapVector.end(); itr++ )
@@ -298,12 +325,24 @@ MapStructrue* CPEStructure::GetMap(char* funcname)
 	}
 	return NULL;
 }
+/**
+* 为文件新区块分配一个虚拟区间，并返回其虚拟区间起始地址
+*/
 DWORD CPEStructure::GetNewSection()
 {
 	DWORD SectionNum = image_nt_headers.FileHeader.NumberOfSections;//得到节数
 	return PEAlign( image_section_header[SectionNum-1].VirtualAddress + image_section_header[SectionNum-1].Misc.VirtualSize,
 			image_nt_headers.OptionalHeader.SectionAlignment);
 }
+/**
+* 在PE文件中添加新的区块
+*
+* Base：新区块的数据基址
+* len：新区块的数据长度
+* SectionName：新区块的名称
+*
+* 返回值：成功返回新区块的结构信息，否则NULL
+*/
 //----------------------------------------------------------------
 // return values:
 // 0 - no room for a new section
